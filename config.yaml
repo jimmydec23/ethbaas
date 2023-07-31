@@ -1,0 +1,8 @@
+homedir: ".projects"
+dbstore: ".projects/dbstore"
+showsql: false
+ethurl: http://10.10.7.30
+adminpk: ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+server:
+  port: 8225

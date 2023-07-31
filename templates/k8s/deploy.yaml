@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: ethbaas-demo
+  name:	node1
+  labels:
+    node: ethbaas-node1
+spec:
+  selector:
+    matchLabels:
+      node: ethbaas-node1
+  replicas: 1
+  minReadySeconds: 10
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        node: ethbaas-node1
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: ethbaas_node
+                operator: In
+                values:
+                - node1
+      initContainers:
+      - name: gen-genesis
+        image: docker.io/ethereum/client-go:v1.10.18
+        command: ["geth", "init", "/genesis.json"]
+        args: ["--datadir=/chaindata"]
+        volumeMounts:
+          - name: chaindata
+            mountPath: /chaindata
+          - name: configmap
+            mountPath: /genesis.json
+            subPath: genesis.json
+
+      containers:
+        - name: node1
+          image: docker.io/ethereum/client-go:v1.10.18
+          ports:
+            - containerPort: 8545
+            - containerPort: 8546
+            - { containerPort: 30303, protocol: TCP }
+            - { containerPort: 30303, protocol: UDP }
+          args: [
+            "--datadir=/chaindata",
+            "--networkid=1874",
+            "--mine",
+            "--miner.threads=1",
+            "--miner.etherbase=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            "--http",
+            "--http.api=web3,eth,net,debug,personal",
+            "--http.corsdomain=*",
+            "--http.addr=0.0.0.0",
+            "--rpc.allow-unprotected-txs",
+            "--gcmode=archive",
+          ]
+          volumeMounts:
+          - name: chaindata
+            mountPath: /chaindata
+      volumes:
+        - name: chaindata
+          persistentVolumeClaim:
+            claimName: node1-pv
+        - name: configmap
+          configMap:
+            name: configmap
+        - name: run
+          hostPath:
+            path: /var/run
